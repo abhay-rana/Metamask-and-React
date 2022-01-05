@@ -1,46 +1,60 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Web3 from "web3";
-const Walletconnect = () => {
-	const [balance, setBalance] = useState(null);
-	const [address, setAddress] = useState(null);
-	const [error, setError] = useState(null);
-	const Metamask = () => {
-		if (!!window.ethereum) {
-			window.ethereum.request({ method: "eth_requestAccounts" }).then((result) => accountChangedHandler(result[0]));
+
+import { checkCorrectNetwork, getUserAddress, getUserBalance } from "./Actions";
+
+import ShowTask from "./ShowTask.js";
+
+export let web3 = new Web3(window.ethereum);
+
+const App = () => {
+	const [account, setAccount] = useState("");
+	const [metamask, setmetamask] = useState(true);
+	const [chainId, setChainId] = useState("");
+	const [balance, setBalance] = useState("");
+	// const [showTask, setshowTask] = useState([]);
+
+	useEffect(() => {
+		if (window.ethereum) {
+			window.ethereum.on("accountsChanged", openMetamaskbtn);
+			window.ethereum.on("chainChanged", () => window.location.reload());
+		}
+	}, []);
+
+	const openMetamaskbtn = async () => {
+		if (window.ethereum) {
+			const get_balance = await getUserBalance();
+			setBalance(get_balance);
+			const get_account = await getUserAddress();
+			setAccount(get_account);
+			const get_chainId = await checkCorrectNetwork();
+			setChainId(get_chainId);
 		} else {
-			setError("Install Metamask");
+			setmetamask(false);
 		}
 	};
-	const accountChangedHandler = (Accounts) => {
-		// window.location.reload();
-		setAddress(Accounts);
-		getBalance(Accounts.toString());
-	};
-	const getBalance = (Accounts) => {
-		window.ethereum.request({ method: "eth_getBalance", params: [Accounts, "latest"] }).then((balance) => setBalance(Web3.utils.fromWei(balance)));
-		//we are here reading the balance from the web3 js
-	};
-	const ChainsChangedHandler = () => {
-		//window will be reloaded when the chains is changed
-		console.log("reload the page");
-		window.location.reload();
-	};
-	if (!!window.ethereum) {
-		window.ethereum?.on("accountsChanged", accountChangedHandler); //event Listener of the metamask when the account is changed
-		window.ethereum?.on("chainChanged", ChainsChangedHandler); //event listener when the chains is changed
-	}
 
 	return (
 		<>
-			This is metamask
-			<br />
-			<button onClick={Metamask}>Coonnect</button>
-			<br />
-			<p>Show Address: {balance || 0}</p>
-			<p>Show Balance: {address || "0x"}</p>
-			<p>{error}</p>
+			{!account ? (
+				<>
+					<button onClick={openMetamaskbtn}>Connect</button>
+					<div>Firstly Connect To the Blockchians</div>
+				</>
+			) : (
+				<>
+					<div>Connects users : {account}</div>
+					<div>Chain Id is :{chainId}</div>
+					<div>Balance is :{balance}</div>
+					<br />
+					<div>The Tasks Are</div>
+					<br />
+					<ShowTask data={{ account, chainId, balance }} />
+				</>
+			)}
+			{!metamask ? <div>Firstly install the metamask</div> : null}
 		</>
 	);
 };
 
-export default Walletconnect;
+export default App;
